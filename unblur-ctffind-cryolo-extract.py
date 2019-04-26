@@ -5,7 +5,7 @@ import glob
 import linecache 
 import subprocess
 
-indir='Movies/14sep05c_c_00004gr_00031sq_000*.mrc'
+indir='Movies/14sep05c_c_00004gr_00031sq_000*.tif'
 moviedir='Movies'
 gain_ref='Movies/norm-amibox05-0.mrc'
 apix=0.66
@@ -17,15 +17,18 @@ ctfoutfile1='%s/micrographs_ctf.star' %(outdirname) #output ctf file
 boxsize=512
 newbox=340
 diameter=200 #pixels 
+suffix_length_remove=4
+if os.path.exists(outdirname): 
+	shutil.rmtree(outdirname)
 os.makedirs(outdirname)
 def unblur(inmovie,startframe,finalframe):
 
-	submitfile='%s_submit.txt' %(inmovie[:-5])
+	submitfile='%s_submit.txt' %(inmovie[:-suffix_length_remove])
 	if os.path.exists(submitfile):
 		os.remove(submitfile)
 
-	if os.path.exists('%s_1_%i.mrc' %(inmovie[:-5],finalframe)):
-		os.remove('%s_1_%i.mrc' %(inmovie[:-5],finalframe))
+	if os.path.exists('%s_1_%i.mrc' %(inmovie[:-suffix_length_remove],finalframe)):
+		os.remove('%s_1_%i.mrc' %(inmovie[:-suffix_length_remove],finalframe))
 
 	o1=open(submitfile,'w')
 	o1.write('''#!/bin/bash
@@ -72,10 +75,10 @@ no
 %i
 %i
 no
-eof\n''' %(inmovie,inmovie[:-5],startframe,finalframe,gain_ref,startframe,finalframe)
+eof\n''' %(inmovie,inmovie[:-suffix_length_remove],startframe,finalframe,gain_ref,startframe,finalframe)
 	o1.write(cmd)
 	o1.close()
-	alignedmic='%s_%i_%i.mrc' %(inmovie[:-5],startframe,finalframe)
+	alignedmic='%s_%i_%i.mrc' %(inmovie[:-suffix_length_remove],startframe,finalframe)
 	cmd='qsub %s' %(submitfile)
         subprocess.Popen(cmd,shell=True).wait()
 
@@ -83,15 +86,15 @@ eof\n''' %(inmovie,inmovie[:-5],startframe,finalframe,gain_ref,startframe,finalf
 
 def tif2mrc_unblur_align_ctf(inmovie,startframe,finalframe,kev,cs,apix):
 
-	submitfile='%s_submit.txt' %(inmovie[:-5])
+	submitfile='%s_submit.txt' %(inmovie[:-suffix_length_remove])
 	if os.path.exists(submitfile):
 		os.remove(submitfile)
 
-	if os.path.exists('%s.mrc' %(inmovie[:-5])):
-		os.remove('%s.mrc' %(inmovie[:-5]))
+	if os.path.exists('%s.mrc' %(inmovie[:-suffix_length_remove])):
+		os.remove('%s.mrc' %(inmovie[:-suffix_length_remove]))
 
-	if os.path.exists('%s_1_%i.mrc' %(inmovie[:-5],finalframe)):
-		os.remove('%s_1_%i.mrc' %(inmovie[:-5],finalframe))
+	if os.path.exists('%s_1_%i.mrc' %(inmovie[:-suffix_length_remove],finalframe)):
+		os.remove('%s_1_%i.mrc' %(inmovie[:-suffix_length_remove],finalframe))
 
 	o1=open(submitfile,'w')
 	o1.write('''#!/bin/bash
@@ -117,7 +120,7 @@ module load relion/3.0_beta-cluster/openmpi/3.1.2
 module load imod 
 # Switch to the working directory
 cd $PBS_O_WORKDIR
-tif2mrc %s %s.mrc\n'''%(movie,movie[:-5]))
+tif2mrc %s %s.mrc\n'''%(movie,movie[:-suffix_length_remove]))
 
 	cmd='''/programs/x/cistem/1.0.0-beta/bin/unblur << eof
 %s
@@ -138,9 +141,9 @@ no
 %i
 %i
 no
-eof\n''' %(inmovie,inmovie[:-5],startframe,finalframe,gain_ref,startframe,finalframe)
+eof\n''' %(inmovie,inmovie[:-suffix_length_remove],startframe,finalframe,gain_ref,startframe,finalframe)
 	o1.write(cmd)
-	alignedmic='%s_%i_%i.mrc' %(inmovie[:-5],startframe,finalframe)
+	alignedmic='%s_%i_%i.mrc' %(inmovie[:-suffix_length_remove],startframe,finalframe)
 	if os.path.exists('%s_diag.txt' %(alignedmic[:-4])):
 		os.remove('%s_diag.txt' %(alignedmic[:-4]))
         cmd='''/programs/x/ctffind4/4.1.8/bin/ctffind << eof
@@ -319,7 +322,7 @@ while currentframe<totframes:
 	micgrouplist=glob.glob('%s/*_1_%i.mrc' %(moviedir,currentframe))
 	for mic in micgrouplist: 
 		os.symlink('%s/%s' %(pwd,mic),'%s/%s/%s' %(pwd,outdirname,mic.split('/')[-1]))		
-	ctfnew='%s_1_%s.star' %(ctfoutfile1[:-5],currentframe)
+	ctfnew='%s_1_%s.star' %(ctfoutfile1[:-suffix_length_remove],currentframe)
 	ctfwrite=open(ctfnew,'w')
 	ctfwrite.write('''# RELION; version 3.0-beta-2
 
@@ -349,7 +352,7 @@ _rlnCtfMaxResolution #13\n''')
         	ctfwrite.write('%s/%s_1_%i.mrc\t%s/%s.ctf:mrc\t%f\t%f\t%f\t%f\t%i\t%f\t0.1\t10000\t%f\t%f\t%f\n'%(outdirname,mic.split('/')[-1][:-14],currentframe,outdirname,mic.split('/')[-1][:-14],df1,df2,abs(df1-df2),astig,kev,cs,apix,cc,res))
 	ctfwrite.close()
 	namelist.append('1_%s' %(currentframe))
-	ctflist.append('%s_1_%s.star' %(ctfoutfile1[:-5],currentframe))
+	ctflist.append('%s_1_%s.star' %(ctfoutfile1[:-suffix_length_remove],currentframe))
 	currentframe=currentframe+1
 
 ##Extract
